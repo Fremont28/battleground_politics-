@@ -7,4 +7,4 @@ Although the majority of polls failed to predict Trump's eventual win, the avera
 
 Even the most conservative forecasts gave Clinton over 70% of winning the general election ranging from sites such as FiveThirtyEight (71.4%) to the New York Times (85%). Most models in turn had Clinton winning divided states including Florida, North Carolina, Pennsylvania, and Virginia. As we know, Clinton only managed to win Virginia taking major defeats in the remaining three states. 
 
-Read Here: 
+Read Here: https://beyondtheaverage.wordpress.com/2018/05/01/swinging-battleground-states-to-the-republicans/
