@@ -1,5 +1,7 @@
-#4/23/18
-#forecasting the 2016 presidential election in PA, NC, and FLA 
+
+#forecasting the 2016 presidential election in PA, NC, and FLA '
+
+#import libraries 
 import pandas as pd 
 import numpy as np 
 import matplotlib.pyplot as plt 
@@ -9,21 +11,24 @@ from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB,BernoulliNB,MultinomialNB
 from sklearn.metrics import roc_auc_score
 from sklearn.tree import DecisionTreeClassifier
-import pydotplus  
+from sklearn.ensemble import RandomForestClassifierimport pydotplus  
 from IPython.display import Image
 
+#import csv file 
 polls=pd.read_csv("upshot-siena-polls.csv")
 polls.info()
 polls['state'].unique() 
 
-#state labels 
+#label states 
 state_code={'Pennsylvania':0,
 'Florida':1,'North Carolina':2}
 polls['state_code']=polls['state'].replace(state_code)
-#gender
+
+#label genders
 gender_code={'Male':0,'Female':1}
 polls['gender_code']=polls['gender'].replace(gender_code)
-#senator
+
+#label senators
 sen_fav={'Richard Burr, the Republican':0,
 "[DO NOT READ] Don't know/No opinion":1,
 "[DO NOT READ] Won't vote":2,
@@ -77,17 +82,17 @@ vote_rep={'Unfavorable':0,
 'Favorable':1,"[DO NOT READ] Don't know/No opinion":2}
 polls['rep_fav']=polls['r_pres_fav'].replace(vote_rep)
 
-#subset poll data 
+#subset the polling data 
 polls1=polls[(polls['pres_fav']==0) | (polls['pres_fav']==1)]
 polls1.shape #3359,45 
 polls_x=polls 
 polls_x['gender_coded']=np.where(polls_x['gender']=="Female",1,0)
 polls_x['vote_president']=np.where(polls_x['vt_pres_2']=="Donald Trump, the Republican",0,
-np.where(polls_x['vt_pres_2']=="Hillary Clinton, the Democrat",1)) ###???
+np.where(polls_x['vt_pres_2']=="Hillary Clinton, the Democrat",1)) 
 
 #find missing values  
 limpiar_data.isnull().T.any().T.sum() #rows with nan
-nan_rows=limpiar_data[limpiar_data.isnull().T.any().T] #source: https://stackoverflow.com/questions/29530232/how-to-check-if-any-value-is-nan-in-a-pandas-dataframe?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+nan_rows=limpiar_data[limpiar_data.isnull().T.any().T] 
 limpiar_data=limpiar_data.dropna(how='all')
 limpiar_data.to_csv("orange_sprite.csv")
 #clean the data for nan 
@@ -98,9 +103,7 @@ limpiar_data1=limpiar_data1.apply(lambda x:x.fillna(x.mean()),axis=0)
 
 #split dataset into train and test features 
 X_train,X_test=train_test_split(limpiar_data1,test_size=0.35, random_state=792)
-#check for missing values  
-nan_rows1=limpiar_data1[limpiar_data1.isnull().T.any().T]
-#create the nb classifier
+nan_rows1=limpiar_data1[limpiar_data1.isnull().T.any().T] #check for missing values  #create the nb classifier
 mnb=MultinomialNB()
 features=['gender_code','vote_lh','party',
 'education','race_card','dem_fav','rep_fav']
@@ -108,9 +111,8 @@ features=['gender_code','vote_lh','party',
 #train the classifier
 mnb.fit(X_train[features].values,
 X_train["pres_fav"])
-#
 vote_predictions=mnb.predict(X_test[features])
-vote_predictions
+
 #accuracy
 X_test.shape[0]
 X_test["pres_fav"]!=vote_predictions.sum()
@@ -121,24 +123,26 @@ X_test["pres_fav"]!=vote_predictions.sum()
 #sample obervations about presidential favorites
 mean_clinton=np.mean(X_train["pres_fav"]) #0.5396 (nod to h. clinton)
 mean_trump=1-mean_clinton #46.04
+
 #some obs. sobre about clinton and trump female supporters
 mean_female=np.mean(X_train[X_train["gender_code"]==1]["pres_fav"]) #58.7%
 std_female=np.std(X_train[X_train["gender_code"]==1]["pres_fav"]) #0.49
-
 mean_male=np.mean(X_train[X_train["gender_code"]==0]["pres_fav"])
+
 #white male voters
 w_male=X_train[(X_train["gender_code"]==0 )& (X_train["race_card"]==2)]
 mean_w_male=np.mean(w_male)
 mean_w_male
+
+#white female voters 
 w_female=X_train[(X_train["gender_code"]==1) & (X_train["race_card"]==2)]
 mean_w_female=np.mean(w_female)
-mean_w_female
-#decison trees
-limpiar_data1.info() 
+
+#visualize clinton edge over Trump in battleground states 
 limpiar_data1.pres_fav.value_counts(normalize=True).plot(kind="bar",title="Clinton Edges Out Trump In Key Battleground States")
 plt.show() 
 
-#split the data
+#split the data into test and train sets 
 data_tree=limpiar_data1.values #1-clinton, 0-trump 
 train=data_tree[0:2400]
 test=data_tree[2401:3559]
@@ -147,32 +151,30 @@ y_train=train[:,7]
 x_test=test[:,0:7]
 y_test=test[:,7]
 
-limpiar_data1.info() 
+#decision tree model (classifier) 
 tree1=DecisionTreeClassifier(max_depth=3,random_state=732)
 tree1.fit(x_train,y_train)
 p1=tree1.predict_proba(x_test)[:,1]
 p1.mean() #52.8 clinton probability that she wins FLA, VA, and PA
 roc_auc_score(y_test,p1) #0.9867 
-print(tree1,x_train) 
 
-#simplify the model
+clf_tree=DecisionTreeClassifier(max_depth=None,min_samples_split=3,random_state=0)
+scores_tree=cross_val_score(clf_tree,x_train,y_train)
+scores_tree.mean() #94.4%
+
+#simplify the decision tree classifier model
 drop=["gender_code"]
 x_train1=np.delete(x_train[:,1],None)
 
-#random forest
+#random forest model (probability)
 #bootsrapped averaging (bagging) and random forest when used with decision trees
-from sklearn.ensemble import RandomForestClassifier
 rf=RandomForestClassifier(n_estimators=5,max_features=4)
 rf.fit(x_train,y_train)
 p2=rf.predict_proba(x_test)[:,1]
 p2.mean() #52.2% clinton edge 
 roc_auc_score(y_test,p2) #96.8%
 
-#decision tree 
-clf_tree=DecisionTreeClassifier(max_depth=None,min_samples_split=3,random_state=0)
-scores_tree=cross_val_score(clf_tree,x_train,y_train)
-scores_tree.mean() #94.4%
-
+#random forest model (classifier) 
 clf_rf=RandomForestClassifier(n_estimators=5,max_depth=None,
 min_samples_split=2)
 clf_rf.fit(x_test,y_test)
